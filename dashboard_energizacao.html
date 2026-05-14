@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Energização Regional</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #00b4d8;
+    --green: #3fb950;
+    --blue: #58a6ff;
+    --yellow: #d29922;
+    --status-nao-bg: #21262d;
+    --status-nao-txt: #8b949e;
+    --status-and-bg: #1c2d3f;
+    --status-and-txt: #58a6ff;
+    --status-con-bg: #112a1f;
+    --status-con-txt: #3fb950;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 28px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-badge {
+    background: var(--accent); color: #000;
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 11px;
+    padding: 4px 10px; border-radius: 4px; letter-spacing: 1px; text-decoration: none;
+  }
+  .header h1 { font-size: 15px; font-weight: 600; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-clock { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .pulse { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .save-toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--status-con-bg); border: 1px solid var(--green);
+    color: var(--green); font-size: 12px; font-family: 'JetBrains Mono', monospace;
+    padding: 8px 16px; border-radius: 6px; font-weight: 600;
+    opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
+  }
+  .save-toast.show { opacity: 1; }
+
+  .btn-reset {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 5px 12px; border-radius: 5px; font-size: 11px; font-family: 'Barlow', sans-serif;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-reset:hover { border-color: #f85149; color: #f85149; }
+
+  .main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+  .overview { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; }
+  .card-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+  .card-value { font-family: 'JetBrains Mono', monospace; font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+  .card-value.total { color: var(--text); }
+  .card-value.nao   { color: var(--status-nao-txt); }
+  .card-value.and   { color: var(--blue); }
+  .card-value.con   { color: var(--green); }
+  .card-sub { font-size: 12px; color: var(--muted); }
+
+  .progress-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+  .progress-pct { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--green); font-weight: 700; }
+  .progress-bar-wrap { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; display: flex; gap: 2px; margin-bottom: 10px; }
+  .progress-seg { height: 100%; transition: width .4s; }
+  .seg-con { background: var(--green); } .seg-and { background: var(--blue); } .seg-nao { background: var(--border); }
+  .progress-legend { display: flex; gap: 18px; font-size: 11px; color: var(--muted); }
+  .leg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+
+  .regionais-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; margin-bottom: 20px; }
+  .regional-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; cursor: pointer; transition: border-color .2s, background .2s; }
+  .regional-card:hover, .regional-card.active { border-color: var(--accent); background: var(--surface2); }
+  .regional-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .regional-name { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; color: var(--accent); }
+  .regional-count { font-size: 10px; color: var(--muted); }
+  .mini-bar { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-bottom: 8px; display: flex; gap: 1px; }
+  .mini-con { background: var(--green); height: 100%; transition: width .4s; }
+  .mini-and { background: var(--blue); height: 100%; transition: width .4s; }
+  .mini-nao { background: var(--border); height: 100%; transition: width .4s; }
+  .regional-stats { font-size: 11px; color: var(--muted); }
+  .rstat-row { display: flex; justify-content: space-between; }
+  .rstat-val.con { color: var(--green); font-weight: 700; } .rstat-val.and { color: var(--blue); font-weight: 700; }
+
+  .table-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .table-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); gap: 10px; flex-wrap: wrap; }
+  .filter-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 600; }
+  .filter-btn { background: var(--bg); border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 5px; font-size: 12px; font-family: 'Barlow',sans-serif; cursor: pointer; transition: all .2s; }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+  .search-input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 4px 10px; border-radius: 5px; font-size: 12px; font-family: 'JetBrains Mono',monospace; width: 140px; outline: none; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+  .table-count { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono',monospace; }
+  .toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .table-wrap { max-height: 500px; overflow-y: auto; }
+  .table-wrap::-webkit-scrollbar { width: 4px; }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--surface2); position: sticky; top: 0; z-index: 10; }
+  th { padding: 9px 14px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 700; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 8px 14px; vertical-align: middle; }
+
+  .td-reg { font-family: 'JetBrains Mono',monospace; font-size: 10px; color: var(--muted); letter-spacing:.5px; }
+  .td-un { font-family: 'JetBrains Mono',monospace; font-weight: 700; font-size: 14px; color: var(--accent); }
+  .td-task { color: var(--text); }
+  .task-tag { display: inline-block; background: rgba(210,153,34,.15); color: #d29922; font-size: 10px; padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 600; }
+
+  /* RESPONSÁVEL EDITÁVEL */
+  .resp-cell { display: flex; align-items: center; gap: 6px; min-width: 130px; }
+  .obs-cell  { display: flex; align-items: center; gap: 6px; min-width: 180px; }
+  .resp-text {
+    font-size: 13px; color: var(--text); cursor: pointer;
+    padding: 3px 7px; border-radius: 4px;
+    border: 1px solid transparent; transition: border-color .15s, background .15s;
+    flex: 1;
+  }
+  .resp-text.empty { color: var(--muted); font-style: italic; font-size: 12px; }
+  .resp-text:hover { border-color: var(--border); background: var(--bg); }
+  .resp-input {
+    display: none; background: var(--bg); border: 1px solid var(--accent);
+    color: var(--text); padding: 3px 8px; border-radius: 4px;
+    font-size: 13px; font-family: 'Barlow', sans-serif; width: 130px; outline: none; flex: 1;
+  }
+  .obs-input {
+    display: none; background: var(--bg); border: 1px solid var(--accent);
+    color: var(--text); padding: 3px 8px; border-radius: 4px;
+    font-size: 13px; font-family: 'Barlow', sans-serif; width: 200px; outline: none; flex: 1;
+  }
+  .resp-input.visible { display: block; }
+  .obs-input.visible  { display: block; }
+  .resp-text.hidden { display: none; }
+  .edit-icon { opacity: 0; font-size: 12px; color: var(--muted); cursor: pointer; transition: opacity .15s; user-select: none; }
+  .resp-cell:hover .edit-icon { opacity: 1; }
+
+  .status-select {
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 4px 22px 4px 8px; font-family: 'Barlow',sans-serif; font-size: 12px; font-weight: 600;
+    cursor: pointer; outline: none; transition: all .15s; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5' viewBox='0 0 9 5'%3E%3Cpath d='M1 1l3.5 3L8 1' stroke='%237d8590' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 6px center;
+  }
+  .status-select.nao { background-color: var(--status-nao-bg); color: var(--status-nao-txt); border-color: #30363d; }
+  .status-select.and { background-color: var(--status-and-bg); color: var(--status-and-txt); border-color: #1f4080; }
+  .status-select.con { background-color: var(--status-con-bg); color: var(--status-con-txt); border-color: #1a4731; }
+
+  .empty-state { padding: 48px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  @media(max-width:1100px){ .regionais-grid { grid-template-columns: repeat(3,1fr); } }
+  @media(max-width:800px){ .overview { grid-template-columns: repeat(2,1fr); } .regionais-grid { grid-template-columns: repeat(2,1fr); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <!--div class="logo-badge">SCADA</div-->
+    <a href="index.html" class="logo-badge">SCADA</a>
+    <h1>Acompanhamento de Energização — Regionais</h1>
+  </div>
+  <div class="header-right">
+    <button class="btn-reset" onclick="resetarDados()">↺ Resetar dados</button>
+    <div class="header-clock">
+      <div class="pulse"></div>
+      <span id="live-time">—</span>
+    </div>
+  </div>
+</div>
+
+<div class="save-toast" id="save-toast">✓ Salvo automaticamente</div>
+
+<div class="main">
+
+  <div class="overview">
+    <div class="card">
+      <div class="card-label">Total de UNs</div>
+      <div class="card-value total" id="stat-total">0</div>
+      <div class="card-sub">em 6 regionais</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Não Iniciado</div>
+      <div class="card-value nao" id="stat-nao">0</div>
+      <div class="card-sub" id="sub-nao">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Em Andamento</div>
+      <div class="card-value and" id="stat-and">0</div>
+      <div class="card-sub" id="sub-and">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Concluído</div>
+      <div class="card-value con" id="stat-con">0</div>
+      <div class="card-sub" id="sub-con">—</div>
+    </div>
+  </div>
+
+  <div class="progress-section">
+    <div class="progress-header">
+      <span class="section-title">Progresso Geral</span>
+      <span class="progress-pct" id="pct-geral">0% concluído</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-seg seg-con" id="bar-con" style="width:0%"></div>
+      <div class="progress-seg seg-and" id="bar-and" style="width:0%"></div>
+      <div class="progress-seg seg-nao" id="bar-nao" style="width:100%"></div>
+    </div>
+    <div class="progress-legend">
+      <span><span class="leg-dot" style="background:var(--green)"></span>Concluído</span>
+      <span><span class="leg-dot" style="background:var(--blue)"></span>Em Andamento</span>
+      <span><span class="leg-dot" style="background:var(--border)"></span>Não Iniciado</span>
+    </div>
+  </div>
+
+  <div class="regionais-grid" id="regionais-grid"></div>
+
+  <div class="table-section">
+    <div class="table-toolbar">
+      <div class="filter-group">
+        <span class="filter-label">Regional:</span>
+        <button class="filter-btn active" data-reg="TODAS">Todas</button>
+        <button class="filter-btn" data-reg="RBG">RBG</button>
+        <button class="filter-btn" data-reg="RCA">RCA</button>
+        <button class="filter-btn" data-reg="RME">RME</button>
+        <button class="filter-btn" data-reg="RRO">RRO</button>
+        <button class="filter-btn" data-reg="RSI">RSI</button>
+        <button class="filter-btn" data-reg="RTS">RTS</button>
+      </div>
+      <div class="toolbar-right">
+        <div class="filter-group">
+          <span class="filter-label">Status:</span>
+          <button class="filter-btn active" data-status="TODOS">Todos</button>
+          <button class="filter-btn" data-status="nao">Não Iniciado</button>
+          <button class="filter-btn" data-status="and">Em Andamento</button>
+          <button class="filter-btn" data-status="con">Concluído</button>
+        </div>
+        <input class="search-input" type="text" placeholder="Buscar UN / responsável..." id="search-input">
+        <span class="table-count" id="table-count">—</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Regional</th>
+            <th>UN</th>
+            <th>Tarefa</th>
+            <th>Responsável &nbsp;<span style="font-weight:400;opacity:.45;text-transform:none;letter-spacing:0">(clique para editar)</span></th>
+            <th>Observações &nbsp;<span style="font-weight:400;opacity:.45;text-transform:none;letter-spacing:0">(clique para editar)</span></th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BASE = [
+  {reg:'RBG',un:'BGA',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RBG',un:'CON',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RBG',un:'ELE',task:'Medição negrito',extra:'Corrigir',resp:'Ricardo'},
+  {reg:'RBG',un:'GAN',task:'Energização do Trafo',extra:false,resp:'Ricardo'},
+  {reg:'RBG',un:'IRU',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RBG',un:'NSA',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RBG',un:'NXA',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RBG',un:'RCS',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RBG',un:'SCX',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RCA',un:'ARA',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RCA',un:'CAC',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RCA',un:'CLC',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RCA',un:'IND',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RCA',un:'QMA',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RCA',un:'RCA',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RCA',un:'RON',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RCA',un:'SDE',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'BDU',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'CA3',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'CAG',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'CAL',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'CGU',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'COX',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RME',un:'CPA',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'CRE',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'DCU',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'JAN',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RME',un:'LAV',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'LIV',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'MAN',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'MFG',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RME',un:'NOB',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RME',un:'PGL',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RME',un:'ROD',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RME',un:'TLA',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RME',un:'VGR',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RRO',un:'364',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'AAR',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'ALG',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'ATA',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'BUN',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'BUR',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'CMG',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'CVE',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'DAQ',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'FNO',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'ITI',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'JAC',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'MDM',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RRO',un:'PAR',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'PET',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'PL2',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'PLE',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'POX',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'PRU',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RRO',un:'RCE',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RRO',un:'RO1',task:'Energização das linhas',extra:'Alinhamento',resp:'Ricardo'},
+  {reg:'RRO',un:'SOZ',task:'Energização das linhas',extra:false,resp:'Ricardo'},
+  {reg:'RSI',un:'BEM',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'BN1',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'CLR',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'COL',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'CRC',task:'Energização das linhas',extra:'Alinhamento',resp:''},
+  {reg:'RSI',un:'FNA',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'INO',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'LRV',task:'Energização das linhas',extra:'Alinhamento',resp:''},
+  {reg:'RSI',un:'MAT',task:'Energização das linhas',extra:'Alinhamento',resp:''},
+  {reg:'RSI',un:'NMU',task:'Energização das linhas',extra:'Alinhamento',resp:''},
+  {reg:'RSI',un:'PCQ',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'PHA',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'SAM',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'SAV',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'SCA',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'SCI',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'SDI',task:'Energização das linhas',extra:'Alinhamento',resp:''},
+  {reg:'RSI',un:'SIN',task:'Energização das linhas',extra:'Alinhamento',resp:''},
+  {reg:'RSI',un:'SRU',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'TAP',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'TNN',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'USU',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RSI',un:'VER',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'APA',task:'Energização das linhas',extra:'Alinhamento',resp:''},
+  {reg:'RTS',un:'ARI',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'BBU',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'BNO',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'CNP',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'COT',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'COZ',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'DEN',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'DIA',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'DSA',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'GUA',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'ITA',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'JB1',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'JB2',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'JUI',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'NHO',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'NMA',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'NOL',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'NOR',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'SJC',task:'Energização das linhas',extra:false,resp:''},
+  {reg:'RTS',un:'TAB',task:'Energização das linhas',extra:false,resp:''},
+];
+
+const REGS = ['RBG','RCA','RME','RRO','RSI','RTS'];
+const LS_KEY = 'energizacao_v1';
+
+// ── PERSISTÊNCIA ──
+function carregarDados() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (saved) {
+      return BASE.map((b, i) => {
+        const s = saved.find(p => p.reg === b.reg && p.un === b.un);
+        return { ...b, id: i, status: s ? s.status : 'nao', resp: s ? s.resp : b.resp, obs: s ? (s.obs||'') : '' };
+      });
+    }
+  } catch(e) {}
+  return BASE.map((b, i) => ({ ...b, id: i, status: 'nao', obs: '' }));
+}
+
+function salvarDados() {
+  localStorage.setItem(LS_KEY, JSON.stringify(
+    state.data.map(d => ({ reg: d.reg, un: d.un, status: d.status, resp: d.resp, obs: d.obs }))
+  ));
+  const t = document.getElementById('save-toast');
+  t.classList.add('show');
+  clearTimeout(salvarDados._timer);
+  salvarDados._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function resetarDados() {
+  if (!confirm('Apagar todos os status e responsáveis salvos?\n\nEssa ação não pode ser desfeita.')) return;
+  localStorage.removeItem(LS_KEY);
+  state.data = BASE.map((b, i) => ({ ...b, id: i, status: 'nao', obs: '' }));
+  state.filterReg = 'TODAS'; state.filterStatus = 'TODOS'; state.search = '';
+  document.getElementById('search-input').value = '';
+  document.querySelectorAll('[data-reg]').forEach(b => b.classList.toggle('active', b.dataset.reg === 'TODAS'));
+  document.querySelectorAll('[data-status]').forEach(b => b.classList.toggle('active', b.dataset.status === 'TODOS'));
+  render();
+}
+
+// ── STATE ──
+const state = { data: carregarDados(), filterReg: 'TODAS', filterStatus: 'TODOS', search: '' };
+
+// ── HELPERS ──
+function counts(arr) {
+  return { total: arr.length, nao: arr.filter(d=>d.status==='nao').length, and: arr.filter(d=>d.status==='and').length, con: arr.filter(d=>d.status==='con').length };
+}
+function pct(n, t) { return t === 0 ? 0 : Math.round(n / t * 100); }
+
+// ── RENDERS ──
+function renderOverview() {
+  const c = counts(state.data);
+  ['total','nao','and','con'].forEach(k => document.getElementById('stat-'+k).textContent = c[k]);
+  ['nao','and','con'].forEach(k => document.getElementById('sub-'+k).textContent = pct(c[k],c.total)+'% do total');
+  const pC=pct(c.con,c.total), pA=pct(c.and,c.total);
+  document.getElementById('bar-con').style.width = pC+'%';
+  document.getElementById('bar-and').style.width = pA+'%';
+  document.getElementById('bar-nao').style.width = (100-pC-pA)+'%';
+  document.getElementById('pct-geral').textContent = pC+'% concluído';
+}
+
+function renderRegionais() {
+  document.getElementById('regionais-grid').innerHTML = REGS.map(reg => {
+    const items = state.data.filter(d => d.reg === reg);
+    const c = counts(items);
+    const pC=pct(c.con,c.total), pA=pct(c.and,c.total);
+    return `<div class="regional-card ${state.filterReg===reg?'active':''}" onclick="setReg('${reg}')">
+      <div class="regional-header"><span class="regional-name">${reg}</span><span class="regional-count">${c.total} UNs</span></div>
+      <div class="mini-bar">
+        <div class="mini-con" style="width:${pC}%"></div>
+        <div class="mini-and" style="width:${pA}%"></div>
+        <div class="mini-nao" style="width:${100-pC-pA}%"></div>
+      </div>
+      <div class="regional-stats">
+        <div class="rstat-row"><span>Concluído</span><span class="rstat-val con">${c.con} <span style="font-weight:400;opacity:.7">${pC}%</span></span></div>
+        <div class="rstat-row"><span>Andamento</span><span class="rstat-val and">${c.and} <span style="font-weight:400;opacity:.7">${pA}%</span></span></div>
+        <div class="rstat-row"><span>Pendente</span><span>${c.nao} <span style="opacity:.7">${100-pC-pA}%</span></span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTable() {
+  let items = state.data;
+  if (state.filterReg !== 'TODAS') items = items.filter(d => d.reg === state.filterReg);
+  if (state.filterStatus !== 'TODOS') items = items.filter(d => d.status === state.filterStatus);
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    items = items.filter(d => d.un.toLowerCase().includes(q) || d.task.toLowerCase().includes(q) || d.resp.toLowerCase().includes(q));
+  }
+  document.getElementById('table-count').textContent = items.length+' item'+(items.length!==1?'s':'');
+  const tbody = document.getElementById('table-body');
+  if (!items.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Nenhuma UN encontrada.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = items.map(d => `
+    <tr>
+      <td class="td-reg">${d.reg}</td>
+      <td class="td-un">${d.un}</td>
+      <td class="td-task">${d.task}${d.extra?`<span class="task-tag">+ ${d.extra}</span>`:''}</td>
+      <td>
+        <div class="resp-cell">
+          <span class="resp-text${d.resp?'':' empty'}" id="rt-${d.id}" onclick="editResp(${d.id})">${d.resp||'— adicionar'}</span>
+          <input class="resp-input" id="ri-${d.id}" type="text" value="${d.resp}" placeholder="Nome do responsável"
+            onblur="saveResp(${d.id})"
+            onkeydown="if(event.key==='Enter')saveResp(${d.id});else if(event.key==='Escape')cancelResp(${d.id})">
+          <span class="edit-icon" onclick="editResp(${d.id})">✎</span>
+        </div>
+      </td>
+      <td>
+        <div class="obs-cell">
+          <span class="resp-text${d.obs?'':' empty'}" id="ot-${d.id}" onclick="editObs(${d.id})">${d.obs||'— adicionar'}</span>
+          <input class="obs-input" id="oi-${d.id}" type="text" value="${d.obs}" placeholder="Observação..."
+            onblur="saveObs(${d.id})"
+            onkeydown="if(event.key==='Enter')saveObs(${d.id});else if(event.key==='Escape')cancelObs(${d.id})">
+          <span class="edit-icon" onclick="editObs(${d.id})">✎</span>
+        </div>
+      </td>
+      <td>
+        <select class="status-select ${d.status}" onchange="setStatus(${d.id},this.value,this)">
+          <option value="nao"${d.status==='nao'?' selected':''}>● Não Iniciado</option>
+          <option value="and"${d.status==='and'?' selected':''}>● Em Andamento</option>
+          <option value="con"${d.status==='con'?' selected':''}>● Concluído</option>
+        </select>
+      </td>
+    </tr>`).join('');
+}
+
+function render() { renderOverview(); renderRegionais(); renderTable(); }
+
+// ── AÇÕES ──
+function setStatus(id, status, el) {
+  state.data[id].status = status;
+  el.className = 'status-select ' + status;
+  renderOverview(); renderRegionais(); salvarDados();
+}
+
+function setReg(reg) {
+  state.filterReg = reg;
+  document.querySelectorAll('[data-reg]').forEach(b => b.classList.toggle('active', b.dataset.reg === reg));
+  renderRegionais(); renderTable();
+}
+
+function editResp(id) {
+  const rt = document.getElementById('rt-'+id), ri = document.getElementById('ri-'+id);
+  rt.classList.add('hidden'); ri.classList.add('visible');
+  ri.focus(); ri.select();
+}
+
+function saveResp(id) {
+  const rt = document.getElementById('rt-'+id), ri = document.getElementById('ri-'+id);
+  if (!ri || !ri.classList.contains('visible')) return;
+  const novo = ri.value.trim();
+  state.data[id].resp = novo;
+  rt.textContent = novo || '— adicionar';
+  rt.className = 'resp-text' + (novo ? '' : ' empty');
+  ri.classList.remove('visible'); rt.classList.remove('hidden');
+  salvarDados();
+}
+
+function cancelResp(id) {
+  const rt = document.getElementById('rt-'+id), ri = document.getElementById('ri-'+id);
+  ri.value = state.data[id].resp;
+  ri.classList.remove('visible'); rt.classList.remove('hidden');
+}
+
+function editObs(id) {
+  const ot = document.getElementById('ot-'+id), oi = document.getElementById('oi-'+id);
+  ot.classList.add('hidden'); oi.classList.add('visible');
+  oi.focus(); oi.select();
+}
+
+function saveObs(id) {
+  const ot = document.getElementById('ot-'+id), oi = document.getElementById('oi-'+id);
+  if (!oi || !oi.classList.contains('visible')) return;
+  const novo = oi.value.trim();
+  state.data[id].obs = novo;
+  ot.textContent = novo || '— adicionar';
+  ot.className = 'resp-text' + (novo ? '' : ' empty');
+  oi.classList.remove('visible'); ot.classList.remove('hidden');
+  salvarDados();
+}
+
+function cancelObs(id) {
+  const ot = document.getElementById('ot-'+id), oi = document.getElementById('oi-'+id);
+  oi.value = state.data[id].obs;
+  oi.classList.remove('visible'); ot.classList.remove('hidden');
+}
+
+// ── FILTROS ──
+document.querySelectorAll('[data-reg]').forEach(b => b.addEventListener('click', () => setReg(b.dataset.reg)));
+document.querySelectorAll('[data-status]').forEach(b => b.addEventListener('click', () => {
+  state.filterStatus = b.dataset.status;
+  document.querySelectorAll('[data-status]').forEach(x => x.classList.remove('active'));
+  b.classList.add('active'); renderTable();
+}));
+document.getElementById('search-input').addEventListener('input', e => { state.search = e.target.value; renderTable(); });
+
+// ── RELÓGIO ──
+setInterval(() => { document.getElementById('live-time').textContent = new Date().toLocaleTimeString('pt-BR'); }, 1000);
+document.getElementById('live-time').textContent = new Date().toLocaleTimeString('pt-BR');
+
+render();
+</script>
+</body>
+</html>
