@@ -1,1 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal ARCA</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --text: #1e293b;
+      --muted: #64748b;
+      --shadow: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-hover: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .portal { max-width: 900px; width: 100%; text-align: center; }
+    h1 { font-size: 2.2rem; margin-bottom: 0.5rem; letter-spacing: -0.5px; }
+    .subtitle { color: var(--muted); margin-bottom: 2.5rem; font-size: 1.05rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--card);
+      padding: 2rem 1.5rem;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+    .card .icon { font-size: 2.2rem; }
+    .card h2 { font-size: 1.2rem; font-weight: 600; }
+    .card p { font-size: 0.9rem; color: var(--muted); }
+    footer { margin-top: 3rem; color: var(--muted); font-size: 0.8rem; }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8rem; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="portal">
+    <h1>🌐 Portal ARCA</h1>
+    <p class="subtitle">Selecione uma das opções abaixo para continuar</p>
+    
+    <div class="grid">
+      <a href="incidente_scada_fixed.html" class="card">
+        <span class="icon">📄</span>
+        <h2>Incidentes SCADA</h2>
+        <p>Acompanhamento executivo de incidentes e ações corretivas. Monitora prazos, responsáveis, prioridades para garantia da qualidade.</p>
+      </a>
+      <a href="dashboard_energizacao.html" class="card">
+        <span class="icon">🔧</span>
+        <h2>Acompanhamento de Energização</h2>
+        <p>Monitoramento do status de energização por regional. Visualiza progresso, atribui responsáveis e registra observações.</p>
+      </a>
+      <a href="dashboard_comissionamento_scada.html" class="card">
+        <span class="icon">📊</span>
+        <h2>Comissionamentos</h2>
+        <p>Controle do pipeline de comissionamento (ETO & EMT). Acompanha etapas, taxas de validação, gargalos e performance por técnico.</p>
+      </a>
+    </div>
 
+    <footer>© 2026 Meu Portal • Hospedado no Netlify</footer>
+  </main>
+</body>
+</html>
