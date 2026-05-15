@@ -60,6 +60,20 @@
   }
   .btn-reset:hover { border-color: #f85149; color: #f85149; }
 
+  .btn-json {
+    background: transparent; border: 1px solid #1f4080; color: var(--blue);
+    padding: 5px 13px; border-radius: 5px; font-size: 12px; font-weight: 600;
+    font-family: 'Barlow', sans-serif; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 5px;
+  }
+  .btn-json:hover { background: var(--status-and-bg); border-color: var(--blue); }
+
+  .btn-load {
+    background: transparent; border: 1px solid #3a2e0e; color: var(--yellow);
+    padding: 5px 13px; border-radius: 5px; font-size: 12px; font-weight: 600;
+    font-family: 'Barlow', sans-serif; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 5px;
+  }
+  .btn-load:hover { background: rgba(210,153,34,.1); border-color: var(--yellow); }
+
   .main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
 
   .overview { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
@@ -180,6 +194,15 @@
   </div>
   <div class="header-right">
     <button class="btn-reset" onclick="resetarDados()">↺ Resetar dados</button>
+    <button class="btn-json" onclick="exportarJSON()" title="Exportar estado atual como arquivo JSON">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 2v4h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10l2 2 2-2M8 12V7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      JSON
+    </button>
+    <button class="btn-load" onclick="document.getElementById('file-input').click()" title="Carregar estado a partir de um arquivo JSON">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 2v4h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 9l2-2 2 2M8 7v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Carregar JSON
+    </button>
+    <input type="file" id="file-input" accept=".json" style="display:none" onchange="importarJSON(event)">
     <div class="header-clock">
       <div class="pulse"></div>
       <span id="live-time">—</span>
@@ -403,10 +426,16 @@ function salvarDados() {
   localStorage.setItem(LS_KEY, JSON.stringify(
     state.data.map(d => ({ reg: d.reg, un: d.un, status: d.status, resp: d.resp, obs: d.obs }))
   ));
+  mostrarToast('✓ Salvo automaticamente');
+}
+
+let _toastTimer;
+function mostrarToast(msg) {
   const t = document.getElementById('save-toast');
+  t.textContent = msg || '✓ Salvo automaticamente';
   t.classList.add('show');
-  clearTimeout(salvarDados._timer);
-  salvarDados._timer = setTimeout(() => t.classList.remove('show'), 2200);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
 function resetarDados() {
@@ -418,6 +447,43 @@ function resetarDados() {
   document.querySelectorAll('[data-reg]').forEach(b => b.classList.toggle('active', b.dataset.reg === 'TODAS'));
   document.querySelectorAll('[data-status]').forEach(b => b.classList.toggle('active', b.dataset.status === 'TODOS'));
   render();
+}
+
+function exportarJSON() {
+  const payload = state.data.map(d => ({ reg: d.reg, un: d.un, status: d.status, resp: d.resp, obs: d.obs || '' }));
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  const stamp = now.toISOString().slice(0,10);
+  a.href = url; a.download = `energizacao_${stamp}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  mostrarToast('⬇ JSON exportado');
+}
+
+function importarJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!Array.isArray(parsed)) throw new Error('Formato inválido');
+      state.data = BASE.map((b, i) => {
+        const s = parsed.find(p => p.reg === b.reg && p.un === b.un);
+        return { ...b, id: i, status: s ? (s.status || 'nao') : 'nao', resp: s ? (s.resp || b.resp) : b.resp, obs: s ? (s.obs || '') : '' };
+      });
+      localStorage.setItem(LS_KEY, JSON.stringify(
+        state.data.map(d => ({ reg: d.reg, un: d.un, status: d.status, resp: d.resp, obs: d.obs }))
+      ));
+      render();
+      mostrarToast('⬆ JSON carregado com sucesso');
+    } catch(err) {
+      alert('Erro ao carregar o arquivo JSON.\nVerifique se é um arquivo exportado por este dashboard.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
 }
 
 // ── STATE ──
