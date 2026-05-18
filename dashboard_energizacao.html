@@ -41,6 +41,57 @@
   .header h1 { font-size: 15px; font-weight: 600; }
   .header-right { display: flex; align-items: center; gap: 12px; }
   .header-clock { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* LOCK */
+  .btn-lock {
+    display: flex; align-items: center; gap: 6px;
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 5px 13px; border-radius: 5px; font-size: 12px; font-weight: 600;
+    font-family: 'Barlow', sans-serif; cursor: pointer; transition: all .2s;
+  }
+  .btn-lock.unlocked { border-color: var(--green); color: var(--green); }
+  .btn-lock:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.7); z-index: 999;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 32px 36px; width: 340px;
+    display: flex; flex-direction: column; gap: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  }
+  .modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
+  .modal-sub   { font-size: 12px; color: var(--muted); margin-top: -10px; }
+  .modal-input {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 9px 12px; border-radius: 6px; font-size: 14px;
+    font-family: 'Barlow', sans-serif; outline: none; width: 100%;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-error { font-size: 12px; color: #f85149; display: none; }
+  .modal-error.show { display: block; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-btn {
+    padding: 7px 18px; border-radius: 6px; font-size: 13px; font-weight: 600;
+    font-family: 'Barlow', sans-serif; cursor: pointer; border: none; transition: all .2s;
+  }
+  .modal-btn.cancel { background: var(--surface2); color: var(--muted); }
+  .modal-btn.cancel:hover { color: var(--text); }
+  .modal-btn.confirm { background: var(--accent); color: #000; }
+  .modal-btn.confirm:hover { opacity: .85; }
+
+  /* MODO BLOQUEADO — desabilita visualmente os elementos editáveis */
+  body.locked .edit-icon          { display: none !important; }
+  body.locked .resp-text          { cursor: default !important; pointer-events: none; }
+  body.locked .status-select      { pointer-events: none; opacity: .6; }
+  body.locked .btn-reset,
+  body.locked .btn-json,
+  body.locked .btn-load           { display: none; }
   .pulse { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
@@ -203,9 +254,28 @@
       Carregar JSON
     </button>
     <input type="file" id="file-input" accept=".json" style="display:none" onchange="importarJSON(event)">
+    <button class="btn-lock" id="btn-lock" onclick="toggleLock()">
+      <svg id="lock-icon" width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span id="lock-label">Bloqueado</span>
+    </button>
     <div class="header-clock">
       <div class="pulse"></div>
       <span id="live-time">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE SENHA -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">🔒 Desbloquear edição</div>
+    <div class="modal-sub" id="modal-sub">Digite a senha para habilitar edição e exportação.</div>
+    <input class="modal-input" id="modal-input" type="password" placeholder="Senha..."
+      onkeydown="if(event.key==='Enter')confirmarSenha(); if(event.key==='Escape')fecharModal()">
+    <div class="modal-error" id="modal-error">Senha incorreta. Tente novamente.</div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="modal-btn confirm" onclick="confirmarSenha()">Confirmar</button>
     </div>
   </div>
 </div>
@@ -407,6 +477,66 @@ const BASE = [
 
 const REGS = ['RBG','RCA','RME','RRO','RSI','RTS'];
 const LS_KEY = 'energizacao_v1';
+
+// ── SENHA & BLOQUEIO ──
+// Para alterar a senha, mude o valor abaixo:
+const SENHA = 'energisa2026';
+let desbloqueado = false;
+
+function aplicarEstadoBloqueio() {
+  if (desbloqueado) {
+    document.body.classList.remove('locked');
+    document.getElementById('btn-lock').classList.add('unlocked');
+    document.getElementById('lock-label').textContent = 'Desbloqueado';
+    document.getElementById('lock-icon').innerHTML = '<rect x="3" y="7" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7V5a3 3 0 016 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
+  } else {
+    document.body.classList.add('locked');
+    document.getElementById('btn-lock').classList.remove('unlocked');
+    document.getElementById('lock-label').textContent = 'Bloqueado';
+    document.getElementById('lock-icon').innerHTML = '<rect x="3" y="7" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
+  }
+}
+
+function toggleLock() {
+  if (desbloqueado) {
+    // bloquear direto, sem pedir senha
+    desbloqueado = false;
+    aplicarEstadoBloqueio();
+    mostrarToast('🔒 Modo edição bloqueado');
+  } else {
+    abrirModal();
+  }
+}
+
+function abrirModal() {
+  document.getElementById('modal-input').value = '';
+  document.getElementById('modal-error').classList.remove('show');
+  document.getElementById('modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('modal-input').focus(), 80);
+}
+
+function fecharModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+function confirmarSenha() {
+  const val = document.getElementById('modal-input').value;
+  if (val === SENHA) {
+    desbloqueado = true;
+    aplicarEstadoBloqueio();
+    fecharModal();
+    mostrarToast('🔓 Modo edição desbloqueado');
+  } else {
+    document.getElementById('modal-error').classList.add('show');
+    document.getElementById('modal-input').value = '';
+    document.getElementById('modal-input').focus();
+  }
+}
+
+// fechar modal clicando fora
+document.getElementById('modal-overlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal-overlay')) fecharModal();
+});
 
 // ── PERSISTÊNCIA ──
 function carregarDados() {
@@ -650,6 +780,7 @@ setInterval(() => { document.getElementById('live-time').textContent = new Date(
 document.getElementById('live-time').textContent = new Date().toLocaleTimeString('pt-BR');
 
 render();
+aplicarEstadoBloqueio(); // inicia bloqueado
 </script>
 </body>
 </html>
