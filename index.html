@@ -1,88 +1,764 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Portal ARCA</title>
+
   <style>
-    :root {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --primary: #2563eb;
-      --text: #1e293b;
-      --muted: #64748b;
-      --shadow: 0 4px 12px rgba(0,0,0,0.08);
-      --shadow-hover: 0 8px 24px rgba(0,0,0,0.12);
+    :root{
+      --bg:#07111F;
+      --card:#0F1B2D;
+      --card-hover:#13243B;
+      --border:rgba(255,255,255,.08);
+      --text:#E2E8F0;
+      --muted:#94A3B8;
+      --cyan:#22D3EE;
+      --blue:#2563EB;
+      --green:#10B981;
+      --orange:#F59E0B;
+
+      --shadow:
+        0 10px 30px rgba(0,0,0,.35);
+
+      --radius:24px;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
     }
-    .portal { max-width: 900px; width: 100%; text-align: center; }
-    h1 { font-size: 2.2rem; margin-bottom: 0.5rem; letter-spacing: -0.5px; }
-    .subtitle { color: var(--muted); margin-bottom: 2.5rem; font-size: 1.05rem; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1.5rem;
+
+    body{
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        sans-serif;
+
+      background:
+        radial-gradient(circle at top right, rgba(34,211,238,.12), transparent 25%),
+        radial-gradient(circle at bottom left, rgba(16,185,129,.10), transparent 25%),
+        var(--bg);
+
+      color:var(--text);
+
+      min-height:100vh;
+
+      overflow-x:hidden;
     }
-    .card {
-      background: var(--card);
-      padding: 2rem 1.5rem;
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.6rem;
+
+    body::before{
+      content:'';
+      position:fixed;
+      inset:0;
+
+      background:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+
+      background-size:40px 40px;
+
+      pointer-events:none;
     }
-    .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
-    .card .icon { font-size: 2.2rem; }
-    .card h2 { font-size: 1.2rem; font-weight: 600; }
-    .card p { font-size: 0.9rem; color: var(--muted); }
-    footer { margin-top: 3rem; color: var(--muted); font-size: 0.8rem; }
-    @media (max-width: 600px) {
-      h1 { font-size: 1.8rem; }
-      .grid { grid-template-columns: 1fr; }
+
+    .container{
+      max-width:1300px;
+      margin:auto;
+      padding:40px 24px;
+      position:relative;
+      z-index:2;
     }
+
+    /* HEADER */
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:40px;
+      gap:20px;
+      flex-wrap:wrap;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:18px;
+    }
+
+    .logo{
+      width:64px;
+      height:64px;
+      border-radius:20px;
+
+      background:
+        linear-gradient(135deg,var(--cyan),var(--blue));
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      font-size:30px;
+
+      box-shadow:
+        0 0 30px rgba(34,211,238,.35);
+    }
+
+    .brand h1{
+      font-size:42px;
+      font-weight:800;
+      letter-spacing:-1px;
+    }
+
+    .brand h1 span{
+      color:var(--cyan);
+    }
+
+    .subtitle{
+      color:var(--muted);
+      margin-top:4px;
+      font-size:15px;
+    }
+
+    .status{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:16px 20px;
+      backdrop-filter:blur(12px);
+    }
+
+    .status small{
+      color:var(--muted);
+      display:block;
+      margin-bottom:6px;
+    }
+
+    .status strong{
+      color:#4ADE80;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:15px;
+    }
+
+    .pulse{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:#4ADE80;
+      animation:pulse 1.5s infinite;
+    }
+
+    @keyframes pulse{
+      0%{transform:scale(1);opacity:1;}
+      70%{transform:scale(1.8);opacity:0;}
+      100%{transform:scale(1);opacity:0;}
+    }
+
+    /* HERO */
+
+    .hero{
+      background:
+        linear-gradient(145deg,
+        rgba(255,255,255,.05),
+        rgba(255,255,255,.02));
+
+      border:1px solid var(--border);
+
+      border-radius:32px;
+
+      padding:50px;
+
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+
+      gap:40px;
+
+      margin-bottom:40px;
+
+      box-shadow:var(--shadow);
+
+      backdrop-filter:blur(20px);
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+
+      background:rgba(34,211,238,.08);
+
+      border:1px solid rgba(34,211,238,.15);
+
+      color:#67E8F9;
+
+      padding:10px 18px;
+
+      border-radius:999px;
+
+      margin-bottom:24px;
+
+      font-size:14px;
+    }
+
+    .hero h2{
+      font-size:58px;
+      line-height:1.05;
+      letter-spacing:-2px;
+      margin-bottom:24px;
+    }
+
+    .hero h2 span{
+      color:var(--cyan);
+    }
+
+    .hero p{
+      color:var(--muted);
+      font-size:18px;
+      line-height:1.8;
+      max-width:700px;
+    }
+
+    .buttons{
+      display:flex;
+      gap:16px;
+      margin-top:34px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      padding:16px 24px;
+      border-radius:18px;
+      border:none;
+      cursor:pointer;
+      font-weight:600;
+      transition:.25s;
+      text-decoration:none;
+    }
+
+    .btn-primary{
+      background:
+        linear-gradient(135deg,var(--cyan),var(--blue));
+
+      color:white;
+
+      box-shadow:
+        0 10px 30px rgba(37,99,235,.35);
+    }
+
+    .btn-primary:hover{
+      transform:translateY(-3px);
+    }
+
+    .btn-secondary{
+      background:rgba(255,255,255,.05);
+      border:1px solid var(--border);
+      color:white;
+    }
+
+    .btn-secondary:hover{
+      background:rgba(255,255,255,.08);
+    }
+
+    /* RIGHT INFO */
+
+    .hero-side{
+      display:grid;
+      gap:18px;
+    }
+
+    .mini-card{
+      background:#0B1728;
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:24px;
+      padding:24px;
+    }
+
+    .mini-card small{
+      color:var(--muted);
+    }
+
+    .mini-card h3{
+      margin-top:12px;
+      font-size:42px;
+    }
+
+    .cyan{
+      color:var(--cyan);
+    }
+
+    .green{
+      color:var(--green);
+    }
+
+    .progress{
+      width:100%;
+      height:10px;
+      background:rgba(255,255,255,.06);
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:18px;
+    }
+
+    .progress div{
+      width:99%;
+      height:100%;
+      background:
+        linear-gradient(90deg,var(--cyan),var(--blue));
+    }
+
+    .chart{
+      display:flex;
+      align-items:flex-end;
+      gap:10px;
+      height:160px;
+      margin-top:24px;
+    }
+
+    .bar{
+      flex:1;
+      border-radius:14px 14px 0 0;
+      background:
+        linear-gradient(to top,var(--cyan),var(--blue));
+    }
+
+    /* MODULES */
+
+    .section-title{
+      margin-bottom:24px;
+    }
+
+    .section-title h3{
+      font-size:30px;
+      margin-bottom:8px;
+    }
+
+    .section-title p{
+      color:var(--muted);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:24px;
+    }
+
+    .card{
+      background:
+        linear-gradient(145deg,
+        rgba(255,255,255,.04),
+        rgba(255,255,255,.02));
+
+      border:1px solid var(--border);
+
+      border-radius:28px;
+
+      padding:30px;
+
+      transition:.3s;
+
+      position:relative;
+
+      overflow:hidden;
+
+      box-shadow:var(--shadow);
+    }
+
+    .card:hover{
+      transform:translateY(-8px);
+      background:var(--card-hover);
+    }
+
+    .card::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      opacity:0;
+      transition:.3s;
+    }
+
+    .card:hover::before{
+      opacity:1;
+    }
+
+    .card.cyan::before{
+      background:
+        linear-gradient(135deg,
+        rgba(34,211,238,.10),
+        transparent);
+    }
+
+    .card.green::before{
+      background:
+        linear-gradient(135deg,
+        rgba(16,185,129,.10),
+        transparent);
+    }
+
+    .card.orange::before{
+      background:
+        linear-gradient(135deg,
+        rgba(245,158,11,.10),
+        transparent);
+    }
+
+    .icon{
+      width:74px;
+      height:74px;
+      border-radius:22px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      font-size:34px;
+
+      margin-bottom:22px;
+    }
+
+    .icon-cyan{
+      background:
+        linear-gradient(135deg,var(--cyan),var(--blue));
+    }
+
+    .icon-green{
+      background:
+        linear-gradient(135deg,#34D399,var(--green));
+    }
+
+    .icon-orange{
+      background:
+        linear-gradient(135deg,#FBBF24,var(--orange));
+    }
+
+    .card h4{
+      font-size:28px;
+      margin-bottom:14px;
+    }
+
+    .card p{
+      color:var(--muted);
+      line-height:1.8;
+      margin-bottom:24px;
+    }
+
+    .metrics{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:24px;
+    }
+
+    .metric{
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.05);
+      padding:10px 14px;
+      border-radius:14px;
+      font-size:13px;
+      color:#CBD5E1;
+    }
+
+    .card button{
+      width:100%;
+      padding:16px;
+      border:none;
+      border-radius:18px;
+      background:#13243B;
+      color:white;
+      cursor:pointer;
+      transition:.25s;
+      font-weight:600;
+      font-size:15px;
+    }
+
+    .card button:hover{
+      background:#19314F;
+    }
+
+    footer{
+      margin-top:60px;
+      padding-top:24px;
+      border-top:1px solid rgba(255,255,255,.08);
+
+      display:flex;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:20px;
+
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .footer-links{
+      display:flex;
+      gap:24px;
+    }
+
+    @media(max-width:980px){
+
+      .hero{
+        grid-template-columns:1fr;
+      }
+
+      .hero h2{
+        font-size:42px;
+      }
+    }
+
+    @media(max-width:680px){
+
+      .brand h1{
+        font-size:32px;
+      }
+
+      .hero{
+        padding:32px;
+      }
+
+      .hero h2{
+        font-size:34px;
+      }
+
+      .topbar{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+
+      footer{
+        flex-direction:column;
+      }
+    }
+
   </style>
 </head>
-<body>
-  <main class="portal">
-    <h1>🌐 Portal ARCA</h1>
-    <p class="subtitle">Selecione uma das opções abaixo para continuar</p>
-    
-    <div class="grid">
-      <a href="incidente_scada_fixed.html" class="card">
-        <span class="icon">📄</span>
-        <h2>Incidentes SCADA</h2>
-        <p>Acompanhamento executivo de incidentes e ações corretivas. Monitora prazos, responsáveis, prioridades para garantia da qualidade.</p>
-      </a>
-      <a href="dashboard_energizacao.html" class="card">
-        <span class="icon">🔧</span>
-        <h2>Acompanhamento de Energização</h2>
-        <p>Monitoramento do status de energização por regional. Visualiza progresso, atribui responsáveis e registra observações.</p>
-      </a>
-      <a href="dashboard_comissionamento_scada.html" class="card">
-        <span class="icon">📊</span>
-        <h2>Comissionamentos</h2>
-        <p>Controle do pipeline de comissionamento (ETO & EMT). Acompanha etapas, taxas de validação, gargalos e performance por técnico.</p>
-      </a>
-    </div>
 
-    <footer>© 2026 Meu Portal • Hospedado no Netlify</footer>
-  </main>
+<body>
+
+  <div class="container">
+
+    <header class="topbar">
+
+      <div class="brand">
+
+        <div class="logo">
+          ⚡
+        </div>
+
+        <div>
+          <h1>Portal <span>ARCA</span></h1>
+
+          <div class="subtitle">
+            Gestão Operacional • Automação • Energia • SCADA
+          </div>
+        </div>
+
+      </div>
+
+      <div class="status">
+        <small>Status Geral</small>
+
+        <strong>
+          <span class="pulse"></span>
+          Sistemas Operacionais
+        </strong>
+      </div>
+
+    </header>
+
+    <!--
+      <section class="hero">
+
+      <div>
+
+        <div class="badge">
+          ⚙️ Plataforma Integrada de Operações
+        </div>
+
+        <h2>
+          Centro de acompanhamento
+          <span>operacional semanal</span>
+        </h2>
+
+        <p>
+          Plataforma moderna para gestão operacional, acompanhamento SCADA,
+          energização, automação industrial e monitoramento executivo
+          dos principais indicadores da operação.
+        </p>
+
+        <div class="buttons">
+
+          <a href="#" class="btn btn-primary">
+            Acessar Dashboard
+          </a>
+
+          <a href="#" class="btn btn-secondary">
+            Relatórios Semanais
+          </a>
+
+        </div>
+
+      </div>
+      
+      <div class="hero-side">
+
+        <div class="mini-card">
+          <small>Disponibilidade SCADA</small>
+
+          <h3 class="cyan">99.2%</h3>
+
+          <div class="progress">
+            <div></div>
+          </div>
+        </div>
+
+        <div class="mini-card">
+          <small>Ativos Monitorados</small>
+
+          <h3 class="green">1.284</h3>
+
+          <p style="margin-top:8px;color:var(--muted);font-size:14px;">
+            Subestações, painéis e ativos integrados.
+          </p>
+        </div>
+
+        <div class="mini-card">
+
+          <small>Performance Semanal</small>
+
+          <div class="chart">
+
+            <div class="bar" style="height:45%"></div>
+            <div class="bar" style="height:62%"></div>
+            <div class="bar" style="height:80%"></div>
+            <div class="bar" style="height:58%"></div>
+            <div class="bar" style="height:92%"></div>
+            <div class="bar" style="height:76%"></div>
+            <div class="bar" style="height:100%"></div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+-->
+    <section>
+
+      <div class="section-title">
+        <h3>Módulos Operacionais</h3>
+
+        <p>
+          Acompanhamento integrado dos principais indicadores da operação.
+        </p>
+      </div>
+
+      <div class="grid">
+
+        <a href="incidente_scada_fixed.html"
+           class="card cyan"
+           style="text-decoration:none;color:inherit;">
+
+          <div class="icon icon-cyan">
+            ⚡
+          </div>
+
+          <h4>Incidentes SCADA</h4>
+
+          <p>
+            Gestão executiva de incidentes, alarmes críticos,
+            análise de causa raiz e acompanhamento corretivo.
+          </p>
+
+          <div class="metrics">
+            <div class="metric">12 Abertos</div>
+            <div class="metric">97% SLA</div>
+            <div class="metric">4 Críticos</div>
+          </div>
+
+          <button>
+            Entrar no módulo
+          </button>
+
+        </a>
+
+        <a href="dashboard_energizacao.html"
+           class="card green"
+           style="text-decoration:none;color:inherit;">
+
+          <div class="icon icon-green">
+            🔌
+          </div>
+
+          <h4>Energização</h4>
+
+          <p>
+            Controle operacional do avanço de energização
+            por regional, responsáveis e status técnico.
+          </p>
+
+          <div class="metrics">
+            <div class="metric">83% Concluído</div>
+            <div class="metric">7 Pendências</div>
+            <div class="metric">14 Regionais</div>
+          </div>
+
+          <button>
+            Entrar no módulo
+          </button>
+
+        </a>
+
+        <a href="dashboard_comissionamento_scada.html"
+           class="card orange"
+           style="text-decoration:none;color:inherit;">
+
+          <div class="icon icon-orange">
+            📊
+          </div>
+
+          <h4>Comissionamentos</h4>
+
+          <p>
+            Pipeline de validações ETO & EMT,
+            performance operacional e acompanhamento técnico.
+          </p>
+
+          <div class="metrics">
+            <div class="metric">21 Ativos</div>
+            <div class="metric">91% Validação</div>
+            <div class="metric">5 Técnicos</div>
+          </div>
+
+          <button>
+            Entrar no módulo
+          </button>
+
+        </a>
+
+      </div>
+
+    </section>
+
+    <footer>
+
+      <div>
+        © 2026 Portal ARCA • Plataforma de Gestão Operacional
+      </div>
+
+      <div class="footer-links">
+        <span>SCADA</span>
+        <span>Automação</span>
+        <span>Energia</span>
+        <span>Analytics</span>
+      </div>
+
+    </footer>
+
+  </div>
+
 </body>
 </html>
