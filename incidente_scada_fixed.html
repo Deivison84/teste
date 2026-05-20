@@ -252,6 +252,13 @@ tbody tr:hover { background: #EFF6FF !important; }
 
 .late-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: var(--red); background: #FEE2E2; padding: 2px 8px; border-radius: 20px; }
 
+.ev-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.ev-tipo-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.ev-row-cont td:first-child { border-left: 3px solid #7DD3FC; background: #F8FAFC !important; }
+#eventosTable td { font-size: 12px; vertical-align: top; padding: 9px 12px; }
+#eventosTable tr.ev-merged-first td { border-top: 2px solid #E2E8F0; }
+.ev-class-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .tab-panel.active .kpi, .tab-panel.active .chart-card, .tab-panel.active .pdca-card {
   animation: fadeUp 0.35s ease both;
@@ -304,6 +311,7 @@ tbody tr:hover { background: #EFF6FF !important; }
   <button class="tab-btn"         onclick="switchTab('acoes',this)">📋 Ações</button>
   <button class="tab-btn"         onclick="switchTab('analises',this)">📈 Análises</button>
   <button class="tab-btn"         onclick="switchTab('panorama',this)">🗺️ Panorama</button>
+  <button class="tab-btn"         onclick="switchTab('eventos',this)">🗂️ Eventos OES</button>
 </nav>
 
 <div class="content">
@@ -403,6 +411,87 @@ tbody tr:hover { background: #EFF6FF !important; }
   </div>
 </div>
 
+<!-- ═══ EVENTOS OES ════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-eventos">
+
+  <!-- Header banner -->
+  <div id="eventosBanner" style="background:linear-gradient(135deg,#1A3C6E,#0D2240);border-radius:12px;padding:14px 22px;margin-bottom:18px;display:flex;align-items:center;gap:14px">
+    <div style="flex:1">
+      <div style="color:#7DD3FC;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px">Programa de Gestão de Incidentes · Fábrica SCADA/ADMS</div>
+      <div id="eventosBannerTitle" style="color:#fff;font-size:15px;font-weight:700">Estão em análise e tratativas <span id="eventosTotalCount">—</span> eventos de incidentes da Fábrica SCADA/ADMS</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button class="btn btn-green" onclick="openModalEvento(null)">+ Linha</button>
+      <button class="btn" style="background:#00A8A0;color:#fff" onclick="exportEventosCSV()">⬇ CSV</button>
+    </div>
+  </div>
+
+  <!-- Legend row -->
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:10px 16px">
+    <span style="font-size:10px;font-weight:700;color:#64748B;letter-spacing:.1em;text-transform:uppercase;margin-right:8px">Legenda Evento</span>
+    <span class="ev-dot" style="background:#DC2626"></span><span style="font-size:12px;color:#1E293B;margin-right:14px">Acidente</span>
+    <span class="ev-dot" style="background:#D97706"></span><span style="font-size:12px;color:#1E293B;margin-right:14px">Incidente</span>
+    <span class="ev-dot" style="background:#009A44"></span><span style="font-size:12px;color:#1E293B">Condição Insegura</span>
+  </div>
+
+  <!-- Main two-column layout -->
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start">
+
+    <!-- LEFT: table -->
+    <div>
+      <div class="tbl-wrap" style="overflow-x:auto">
+        <table id="eventosTable">
+          <thead><tr>
+            <th style="width:130px">Evento</th>
+            <th style="width:90px">Data</th>
+            <th style="min-width:150px">Impacto Operacional</th>
+            <th style="min-width:160px">Causa Identificada</th>
+            <th style="min-width:140px">Classificação da Causa</th>
+            <th style="min-width:160px">Camada de Defesa que Falhou</th>
+            <th style="width:60px"></th>
+          </tr></thead>
+          <tbody id="eventosBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Estágio Atual + Pontos de Atenção -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px 18px">
+          <div style="font-size:10px;font-weight:700;color:#1A3C6E;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px">📍</span> Estágio Atual
+          </div>
+          <textarea id="eventoEstagioAtual" style="width:100%;min-height:90px;font-size:12px;border:none;outline:none;resize:none;color:#1E293B;font-family:'IBM Plex Sans',sans-serif;line-height:1.6" oninput="saveEventosExtra()" placeholder="Descreva o estágio atual do programa..."></textarea>
+        </div>
+        <div style="background:#fff;border:2px solid #D97706;border-radius:10px;padding:14px 18px">
+          <div style="font-size:10px;font-weight:700;color:#D97706;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px">⚠️</span> Pontos de Atenção
+          </div>
+          <textarea id="eventoPontosAtencao" style="width:100%;min-height:90px;font-size:12px;border:none;outline:none;resize:none;color:#1E293B;font-family:'IBM Plex Sans',sans-serif;line-height:1.6" oninput="saveEventosExtra()" placeholder="Liste os principais pontos de atenção..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Resumo + Chart -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- Resumo executivo -->
+      <div style="background:#EFF6FF;border:1px solid #7DD3FC;border-radius:10px;padding:14px 16px">
+        <div style="font-size:10px;font-weight:700;color:#1A3C6E;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Resumo executivo</div>
+        <textarea id="eventoResumo" style="width:100%;min-height:100px;font-size:12px;border:none;outline:none;resize:none;color:#1E293B;background:transparent;font-family:'IBM Plex Sans',sans-serif;line-height:1.6" oninput="saveEventosExtra()" placeholder="Síntese executiva do programa..."></textarea>
+      </div>
+
+      <!-- Classificação da Causa — donut chart -->
+      <div class="chart-card" style="padding:18px">
+        <h3>Classificação da Causa</h3>
+        <div style="position:relative;height:220px">
+          <canvas id="chartEventosCausa"></canvas>
+        </div>
+        <div id="eventosChartLegend" style="margin-top:12px;display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+    </div>
+  </div>
+</div><!-- /tab-eventos -->
+
 </div><!-- /.content -->
 </div><!-- /.shell -->
 
@@ -443,6 +532,33 @@ tbody tr:hover { background: #EFF6FF !important; }
     <div class="fgrp"><label>Código do Incidente</label><input id="miCode" placeholder="Ex: OES-EMT-011" autocomplete="off"/></div>
     <div class="fgrp"><label>Título / Descrição</label><textarea id="miTitle" rows="3" placeholder="Ex: Falha de supervisão no AL 87..."></textarea></div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModalInc()">Cancelar</button><button class="btn btn-navy" onclick="saveIncidente()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- Modal Evento -->
+<div class="modal-bg" id="modalEventoBg">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-hdr"><h2 id="meTitle">Nova Linha</h2><button class="close-btn" onclick="closeModalEvento()">×</button></div>
+    <div class="fgrid2">
+      <div class="fgrp"><label>Evento (OES)</label><input id="meEvento" placeholder="Ex: OES-EMT-001" autocomplete="off" list="meEventoList"/><datalist id="meEventoList"></datalist></div>
+      <div class="fgrp"><label>Tipo</label><select id="meTipo"><option>Incidente</option><option>Acidente</option><option>Condição Insegura</option><option>Em análise</option></select></div>
+    </div>
+    <div class="fgrid2">
+      <div class="fgrp"><label>Data do Incidente</label><input type="date" id="meData"/></div>
+      <div class="fgrp"><label>Classificação da Causa</label>
+        <select id="meClassif">
+          <option>Erro humano operacional</option>
+          <option>Falha de processo</option>
+          <option>Erro de configuração técnica</option>
+          <option>Limitação técnica</option>
+          <option>Em análise</option>
+        </select>
+      </div>
+    </div>
+    <div class="fgrp"><label>Impacto Operacional</label><textarea id="meImpacto" rows="2" placeholder="Descreva o impacto..."></textarea></div>
+    <div class="fgrp"><label>Causa Identificada</label><textarea id="meCausa" rows="2" placeholder="Descreva a causa..."></textarea></div>
+    <div class="fgrp"><label>Camada de Defesa que Falhou (Queijo Suíço)</label><input id="meCamada" placeholder="Ex: Controle técnico / gestão de configuração"/></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModalEvento()">Cancelar</button><button class="btn btn-navy" onclick="saveEvento()">Salvar</button></div>
   </div>
 </div>
 
@@ -1176,6 +1292,7 @@ function switchTab(id, btn){
   btn.classList.add('active');
   if(id==='analises') setTimeout(buildAnalyticsCharts, 80);
   if(id==='panorama') setTimeout(buildPanoramaCharts,  80);
+  if(id==='eventos')  setTimeout(buildEventosTab,      80);
 }
 
 function refresh(){
@@ -1195,8 +1312,9 @@ function setupListeners(){
     if(el){ el.addEventListener('input',renderTable); el.addEventListener('change',renderTable); }
   });
   window.addEventListener('click',function(e){
-    if(e.target===document.getElementById('modalBg'))    closeModal();
-    if(e.target===document.getElementById('modalIncBg')) closeModalInc();
+    if(e.target===document.getElementById('modalBg'))       closeModal();
+    if(e.target===document.getElementById('modalIncBg'))    closeModalInc();
+    if(e.target===document.getElementById('modalEventoBg')) closeModalEvento();
   });
   document.addEventListener('keydown',function(e){
     if(e.key==='Enter'&&document.getElementById('modalIncBg').classList.contains('open')) saveIncidente();
@@ -1210,9 +1328,292 @@ document.addEventListener('DOMContentLoaded', function(){
   if(el) el.textContent=d.toLocaleDateString('pt-BR',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
   load();
   migrate();
+  // Load eventos seed
+  (function(){
+    if (!localStorageAvailable) { eventosData = JSON.parse(JSON.stringify(EVENTOS_SEED)); return; }
+    try {
+      var r = localStorage.getItem(EVENTOS_KEY);
+      eventosData = (r && JSON.parse(r).length) ? JSON.parse(r) : JSON.parse(JSON.stringify(EVENTOS_SEED));
+    } catch(e) { eventosData = JSON.parse(JSON.stringify(EVENTOS_SEED)); }
+  })();
   setupListeners();
   refresh();
+  // Populate meEventoList from incidentsData + UNIT_MAP keys
+  var dl=document.getElementById('meEventoList');
+  if(dl){
+    var codes=Object.keys(incidentsData).concat(Object.keys(UNIT_MAP)).filter(function(c,i,a){return a.indexOf(c)===i;}).sort(function(a,b){return incSortNum(a)-incSortNum(b);});
+    dl.innerHTML=codes.map(function(c){return '<option value="'+c+'">';}).join('');
+  }
+  // Load eventos text areas seed if first time
+  var resumo = document.getElementById('eventoResumo');
+  var estagio = document.getElementById('eventoEstagioAtual');
+  var pontos  = document.getElementById('eventoPontosAtencao');
+  if(localStorageAvailable){
+    try {
+      var ex = JSON.parse(localStorage.getItem(RESUMO_KEY)||'{}');
+      if(resumo)  resumo.value  = ex.resumo  !== undefined ? ex.resumo  : RESUMO_SEED;
+      if(estagio) estagio.value = ex.estagio !== undefined ? ex.estagio : ESTAGIO_SEED;
+      if(pontos)  pontos.value  = ex.pontos  !== undefined ? ex.pontos  : PONTOS_SEED;
+    } catch(e){}
+  } else {
+    if(resumo)  resumo.value  = RESUMO_SEED;
+    if(estagio) estagio.value = ESTAGIO_SEED;
+    if(pontos)  pontos.value  = PONTOS_SEED;
+  }
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EVENTOS OES — Storage, Seed, Render, Chart, Modal
+// ══════════════════════════════════════════════════════════════════════════════
+
+const EVENTOS_KEY = 'pdca-eventos-v1';
+const RESUMO_KEY  = 'pdca-resumo-v1';
+let eventosData = [];
+let editingEvento = null;
+
+const TIPOS_COLOR = {
+  'Acidente':         {bg:'#FEE2E2',fg:'#991B1B',dot:'#DC2626'},
+  'Incidente':        {bg:'#FEF3C7',fg:'#92400E',dot:'#D97706'},
+  'Condição Insegura':{bg:'#DCFCE7',fg:'#14532D',dot:'#009A44'},
+  'Em análise':       {bg:'#F1F5F9',fg:'#475569',dot:'#94A3B8'},
+};
+const CLASSIF_COLOR = {
+  'Erro humano operacional': {bg:'#DBEAFE',fg:'#1D4ED8'},
+  'Falha de processo':       {bg:'#FFE4E6',fg:'#BE123C'},
+  'Erro de configuração técnica':{bg:'#F3E8FF',fg:'#7C3AED'},
+  'Limitação técnica':       {bg:'#FEF9C3',fg:'#854D0E'},
+  'Em análise':              {bg:'#F1F5F9',fg:'#64748B'},
+};
+const CLASSIF_CHART_MAP = {
+  'Erro humano operacional':    'Erro Humano SCADA',
+  'Falha de processo':          'Erro de insumo',
+  'Erro de configuração técnica':'Falha de Produto',
+  'Limitação técnica':          'Limitação técnica',
+};
+const CHART_COLORS = {
+  'Erro Humano SCADA': '#1A3C6E',
+  'Erro de insumo':    '#D97706',
+  'Falha de Produto':  '#00A8A0',
+  'Limitação técnica': '#009A44',
+};
+
+const EVENTOS_SEED = [
+  {id:1,  evento:"OES-EMT-001",      tipo:"Incidente", data:"2025-09-01", impacto:"Indisponibilidade do DJ 87 da SE Várzea Grande por ~17h", causa:"Objeto deletado do projeto",                        classificacao:"Erro humano operacional",   camada:"Controle técnico / gestão de configuração"},
+  {id:2,  evento:"OES-EMT-001",      tipo:"Incidente", data:"2025-09-01", impacto:"",                                                           causa:"Erro no processo de distribuição de demanda",        classificacao:"Falha de processo",          camada:"Governança de processo"},
+  {id:3,  evento:"OES-TFE2-002",     tipo:"Incidente", data:"2025-10-04", impacto:"Perda de comunicação de 12 religadores",                  causa:"Driver deletado",                                    classificacao:"Erro humano operacional",   camada:"Controle técnico / gestão de configuração"},
+  {id:4,  evento:"OES-BARRO-DURO-003",tipo:"Incidente",data:"2025-10-07", impacto:"Perda de visibilidade operacional e risco elevado",       causa:"Erro durante edição da base no Studio",              classificacao:"Erro de configuração técnica",camada:"Controle técnico / revisão de alteração"},
+  {id:5,  evento:"OES-NAM-004",      tipo:"Incidente", data:"2025-10-18", impacto:"Comando incorreto de chave",                              causa:"Configuração incorreta no ADMS",                     classificacao:"Erro de configuração técnica",camada:"Controle técnico / validação operacional"},
+  {id:6,  evento:"OES-LIVRAMENTO-005",tipo:"Incidente",data:"2025-10-23", impacto:"Perda de comunicação dos pontos digitais",               causa:"Exclusão dos pontos digitais",                       classificacao:"Erro humano operacional",   camada:"Procedimento operacional / controle técnico"},
+  {id:7,  evento:"OES-NBU-006",      tipo:"Incidente", data:"2025-11-07", impacto:"Interrupção da comunicação de 15 religadores",           causa:"Exclusão indevida do driver NBU1",                   classificacao:"Erro humano operacional",   camada:"Controle técnico / gestão de mudanças"},
+  {id:8,  evento:"OES-CBX/PSL-007",  tipo:"Incidente", data:"2026-02-12", impacto:"Inconsistência entre operação real e supervisão",        causa:"Alteração de IP para endereço já utilizado",         classificacao:"Erro de configuração técnica",camada:"Controle técnico / gestão de configuração"},
+  {id:9,  evento:"OES-COZ/SJC-008",  tipo:"Incidente", data:"2026-03-26", impacto:"Perda de visualização operacional",                     causa:"Exclusão acidental dos equipamentos em tela",        classificacao:"Erro humano operacional",   camada:"Controle técnico / gestão de mudanças"},
+  {id:10, evento:"OES-ESG-009",      tipo:"Incidente", data:"2026-04-01", impacto:"COGN operou sem visibilidade da planta de gás (~14h)",  causa:"Aplicação incorreta de config. de roteamento (Vivo)",classificacao:"Falha de processo",          camada:"Controle técnico / gestão de mudanças"},
+  {id:11, evento:"OES-ESG-009",      tipo:"Incidente", data:"2026-04-01", impacto:"",                                                           causa:"Configuração incompleta dos modens",                 classificacao:"Erro de configuração técnica",camada:"Controle técnico / gestão de configuração"},
+  {id:12, evento:"OES-ESG-009",      tipo:"Incidente", data:"2026-04-01", impacto:"",                                                           causa:"Fragilidade na comutação dual-SIM entre operadoras", classificacao:"Limitação técnica",          camada:"Controle técnico / gestão de mudanças"},
+  {id:13, evento:"OES-CJR-010",      tipo:"Incidente", data:"2026-04-09", impacto:"Em análise",                                             causa:"Em análise",                                         classificacao:"Em análise",                camada:"Em análise"},
+  {id:14, evento:"OES-VGR-011",      tipo:"Incidente", data:"2026-04-29", impacto:"Em análise",                                             causa:"Em análise",                                         classificacao:"Em análise",                camada:"Em análise"},
+];
+
+const RESUMO_SEED = "75% dos eventos classificados estão ligados a fatores humanos e de configuração técnica, indicando foco em padronização, treinamento e controles técnicos preventivos para redução de riscos. 2 ocorrências recentes ainda estão em fase de análise.";
+const ESTAGIO_SEED = "• O plano consolidado abrange 11 ocorrências de engenharia (OES-EMT-001 a OES-VGR-011);\n• 9 ocorrências possuem RCA e causas formalmente identificadas;\n• OES-CJR-010 e OES-VGR-011 estão com relatórios em elaboração;\n• O incidente OES-ESG-009 introduz nova categoria de risco ao programa.";
+const PONTOS_SEED = "• As causas relacionadas a fatores humanos são o principal ofensor;\n• A capacitação continuada é ponto crítico para reverter esse quadro.";
+
+function loadEventos() {
+  if (!localStorageAvailable) { eventosData = JSON.parse(JSON.stringify(EVENTOS_SEED)); return; }
+  try {
+    var r = localStorage.getItem(EVENTOS_KEY);
+    eventosData = (r && JSON.parse(r).length) ? JSON.parse(r) : JSON.parse(JSON.stringify(EVENTOS_SEED));
+  } catch(e) { eventosData = JSON.parse(JSON.stringify(EVENTOS_SEED)); }
+  // Load text areas
+  var resumo = document.getElementById('eventoResumo');
+  var estagio = document.getElementById('eventoEstagioAtual');
+  var pontos  = document.getElementById('eventoPontosAtencao');
+  try {
+    var ex = JSON.parse(localStorage.getItem(RESUMO_KEY)||'{}');
+    if(resumo)  resumo.value  = ex.resumo  || RESUMO_SEED;
+    if(estagio) estagio.value = ex.estagio || ESTAGIO_SEED;
+    if(pontos)  pontos.value  = ex.pontos  || PONTOS_SEED;
+  } catch(e) {
+    if(resumo)  resumo.value  = RESUMO_SEED;
+    if(estagio) estagio.value = ESTAGIO_SEED;
+    if(pontos)  pontos.value  = PONTOS_SEED;
+  }
+}
+
+function saveEventos() {
+  if (!localStorageAvailable) return;
+  try { localStorage.setItem(EVENTOS_KEY, JSON.stringify(eventosData)); } catch(e){}
+}
+
+function saveEventosExtra() {
+  if (!localStorageAvailable) return;
+  try {
+    var ex = {
+      resumo:  (document.getElementById('eventoResumo')||{value:RESUMO_SEED}).value,
+      estagio: (document.getElementById('eventoEstagioAtual')||{value:ESTAGIO_SEED}).value,
+      pontos:  (document.getElementById('eventoPontosAtencao')||{value:PONTOS_SEED}).value,
+    };
+    localStorage.setItem(RESUMO_KEY, JSON.stringify(ex));
+  } catch(e){}
+}
+
+function buildEventosTab() {
+  loadEventos();
+  renderEventosTable();
+  buildEventosChart();
+  // update banner count
+  var uniqueEvts = [...new Set(eventosData.map(function(r){return r.evento;}))].length;
+  var el = document.getElementById('eventosTotalCount');
+  if(el) el.textContent = uniqueEvts;
+}
+
+function renderEventosTable() {
+  var sorted = eventosData.slice().sort(function(a,b){
+    var na=incSortNum(a.evento), nb=incSortNum(b.evento);
+    return na!==nb ? na-nb : a.id-b.id;
+  });
+  var html = '', lastEvt = '', isFirst = true;
+  sorted.forEach(function(r){
+    var isNewEvt = r.evento !== lastEvt;
+    var tc = TIPOS_COLOR[r.tipo] || TIPOS_COLOR['Em análise'];
+    var cc = CLASSIF_COLOR[r.classificacao] || CLASSIF_COLOR['Em análise'];
+    var eventoCell = isNewEvt
+      ? '<td rowspan="X" style="font-weight:700;font-size:11px;font-family:var(--mono);color:#1A3C6E;white-space:nowrap;vertical-align:middle">'+
+          '<span class="ev-tipo-badge" style="background:'+tc.bg+';color:'+tc.fg+'">'+
+            '<span class="ev-dot" style="background:'+tc.dot+'"></span>'+r.tipo+'</span><br>'+
+          '<span style="font-size:12px;margin-top:4px;display:block">'+r.evento+'</span></td>'
+      : null;
+    var dataCell = isNewEvt
+      ? '<td style="font-size:11px;color:#64748B;white-space:nowrap;vertical-align:middle">'+fmtDate(r.data)+'</td>'
+      : null;
+    var impactoCell = isNewEvt
+      ? '<td style="font-size:12px;vertical-align:top;max-width:180px">'+(r.impacto||'—')+'</td>'
+      : null;
+
+    html += '<tr class="'+(isNewEvt?'ev-merged-first':'')+' '+(isNewEvt?'':'ev-row-cont')+'" data-id="'+r.id+'">';
+    if(isNewEvt){
+      html += '<td style="font-weight:700;font-size:11px;font-family:var(--mono);color:#1A3C6E;white-space:nowrap;vertical-align:top;padding-top:12px">'+
+        '<span class="ev-tipo-badge" style="background:'+tc.bg+';color:'+tc.fg+'">'+
+          '<span class="ev-dot" style="background:'+tc.dot+'"></span>'+r.tipo+'</span><br>'+
+        '<span style="font-size:12px;margin-top:4px;display:block">'+r.evento+'</span></td>'+
+        '<td style="font-size:11px;color:#64748B;white-space:nowrap;vertical-align:top;padding-top:14px">'+fmtDate(r.data)+'</td>'+
+        '<td style="font-size:12px;vertical-align:top;padding-top:12px;max-width:160px">'+(r.impacto||'—')+'</td>';
+    } else {
+      html += '<td style="background:#FAFBFD;border-left:3px solid #7DD3FC"></td><td style="background:#FAFBFD"></td><td style="background:#FAFBFD"></td>';
+    }
+    html +=
+      '<td style="font-size:12px;vertical-align:top;max-width:170px">'+(r.causa||'—')+'</td>'+
+      '<td style="vertical-align:top"><span class="ev-class-badge" style="background:'+cc.bg+';color:'+cc.fg+'">'+r.classificacao+'</span></td>'+
+      '<td style="font-size:11px;color:#475569;vertical-align:top;max-width:160px">'+(r.camada||'—')+'</td>'+
+      '<td style="vertical-align:top;white-space:nowrap">'+
+        '<button class="btn btn-ghost" style="padding:3px 7px;font-size:11px" onclick="editEvento('+r.id+')">✏️</button>'+
+        '<button class="btn btn-red"   style="padding:3px 7px;font-size:11px" onclick="deleteEvento('+r.id+')">🗑️</button>'+
+      '</td>';
+    html += '</tr>';
+    lastEvt = r.evento;
+    isFirst = false;
+  });
+  if(!html) html = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#94A3B8">Nenhum evento registrado.</td></tr>';
+  var body = document.getElementById('eventosBody');
+  if(body) body.innerHTML = html;
+
+  // update banner
+  var uniqueEvts = [...new Set(eventosData.map(function(r){return r.evento;}))].length;
+  var el = document.getElementById('eventosTotalCount');
+  if(el) el.textContent = uniqueEvts;
+}
+
+function buildEventosChart() {
+  if(typeof Chart === 'undefined') return;
+  var counts = {};
+  eventosData.forEach(function(r){
+    var cat = CLASSIF_CHART_MAP[r.classificacao];
+    if(cat) counts[cat] = (counts[cat]||0)+1;
+  });
+  var labels = Object.keys(CHART_COLORS);
+  var vals   = labels.map(function(l){return counts[l]||0;});
+  var colors = labels.map(function(l){return CHART_COLORS[l];});
+  var total  = vals.reduce(function(s,v){return s+v;},0);
+
+  destroyChart('eventosCausa');
+  var ctx = document.getElementById('chartEventosCausa');
+  if(!ctx) return;
+  charts['eventosCausa'] = new Chart(ctx, {
+    type:'doughnut',
+    data:{labels:labels, datasets:[{data:vals, backgroundColor:colors, borderWidth:2, borderColor:'#fff'}]},
+    options:{responsive:true, maintainAspectRatio:false, cutout:'65%',
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){ return c.label+': '+c.raw+' ('+Math.round(c.raw/total*100)+'%)'; }}}
+      }
+    }
+  });
+
+  // Custom legend with percentages
+  var leg = document.getElementById('eventosChartLegend');
+  if(leg) leg.innerHTML = labels.map(function(l,i){
+    var pct = total>0 ? Math.round(vals[i]/total*100) : 0;
+    return '<div style="display:flex;align-items:center;gap:8px">'+
+      '<span style="width:12px;height:12px;border-radius:3px;background:'+colors[i]+';flex-shrink:0"></span>'+
+      '<span style="flex:1;font-size:11px;color:#1E293B">'+l+'</span>'+
+      '<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+colors[i]+'">'+pct+'%</span>'+
+      '<span style="font-size:10px;color:#94A3B8">('+vals[i]+')</span>'+
+    '</div>';
+  }).join('');
+}
+
+// ── Modal Evento ────────────────────────────────────────────────────────────
+function openModalEvento(r){
+  editingEvento = r ? r.id : null;
+  document.getElementById('meTitle').textContent = r ? 'Editar Linha' : 'Nova Linha';
+  function sv(id,v){ var e=document.getElementById(id); if(e) e.value=v||''; }
+  sv('meEvento',      r&&r.evento);
+  sv('meTipo',        (r&&r.tipo)||'Incidente');
+  sv('meData',        r&&r.data);
+  sv('meImpacto',     r&&r.impacto);
+  sv('meCausa',       r&&r.causa);
+  sv('meClassif',     (r&&r.classificacao)||'Erro humano operacional');
+  sv('meCamada',      r&&r.camada);
+  document.getElementById('modalEventoBg').classList.add('open');
+}
+function closeModalEvento(){ document.getElementById('modalEventoBg').classList.remove('open'); editingEvento=null; }
+
+function saveEvento(){
+  var form={
+    evento:       (document.getElementById('meEvento')||{value:''}).value.trim().toUpperCase(),
+    tipo:         (document.getElementById('meTipo')||{value:'Incidente'}).value,
+    data:         (document.getElementById('meData')||{value:''}).value,
+    impacto:      (document.getElementById('meImpacto')||{value:''}).value.trim(),
+    causa:        (document.getElementById('meCausa')||{value:''}).value.trim(),
+    classificacao:(document.getElementById('meClassif')||{value:''}).value,
+    camada:       (document.getElementById('meCamada')||{value:''}).value.trim(),
+  };
+  if(!form.evento||!form.causa){ alert('Preencha pelo menos o Evento e a Causa.'); return; }
+  if(editingEvento){
+    var idx=eventosData.findIndex(function(r){return r.id===editingEvento;});
+    if(idx!==-1) eventosData[idx]=Object.assign({},eventosData[idx],form);
+  } else {
+    var nextId=Math.max.apply(null,eventosData.map(function(r){return r.id;}).concat([0]))+1;
+    eventosData.push(Object.assign({id:nextId},form));
+  }
+  saveEventos(); closeModalEvento(); renderEventosTable(); buildEventosChart();
+}
+
+function editEvento(id){ openModalEvento(eventosData.find(function(r){return r.id===id;})); }
+function deleteEvento(id){
+  if(!confirm('Excluir esta linha?')) return;
+  eventosData=eventosData.filter(function(r){return r.id!==id;});
+  saveEventos(); renderEventosTable(); buildEventosChart();
+}
+
+function exportEventosCSV(){
+  var h='Evento;Tipo;Data;Impacto;Causa;Classificação;Camada de Defesa\n';
+  var r=eventosData.map(function(r){
+    return [r.evento,r.tipo,fmtDate(r.data),'"'+r.impacto+'"','"'+r.causa+'"',r.classificacao,'"'+r.camada+'"'].join(';');
+  }).join('\n');
+  var blob=new Blob(['\uFEFF'+h+r],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='Eventos_OES_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+}
 
 </script>
 </body>
